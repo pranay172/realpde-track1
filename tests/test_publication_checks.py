@@ -3,15 +3,54 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import subprocess
+import sys
 import unittest
+from unittest import mock
 
 SPEC = importlib.util.spec_from_file_location(
     "snapshot_audit", Path(__file__).resolve().parents[1] / "scripts/publication_audit.py")
 AUDIT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(AUDIT)
 
+ARCHIVE_SPEC = importlib.util.spec_from_file_location(
+    "snapshot_archive", Path(__file__).resolve().parents[1] / "scripts/check_archive.py")
+ARCHIVE = importlib.util.module_from_spec(ARCHIVE_SPEC)
+with mock.patch.dict(sys.modules, {"publication_audit": AUDIT}):
+    ARCHIVE_SPEC.loader.exec_module(ARCHIVE)
+
 
 class PublicationChecks(unittest.TestCase):
+    def test_reader_links_include_html_and_nested_documents(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs").mkdir()
+            (root / "docs/hero.svg").write_text("<svg/>\n")
+            (root / "docs/guide.md").write_text("[Back](../README.md)\n")
+            (root / "README.md").write_text(
+                '[Guide](docs/guide.md#setup)\n<img src="docs/hero.svg">\n'
+                "<a href='docs/guide.md'>Guide</a>\n"
+                '<a href="https://example.com">External</a>\n'
+                '<a href="#section">Anchor</a>\n')
+            self.assertEqual(ARCHIVE.check_reader_links(root, ("README.md", "docs/guide.md")), 4)
+
+    def test_missing_html_reader_assets_fail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for markup in ('<img src="absent.svg">', "<a href='absent.md'>Missing</a>"):
+                with self.subTest(markup=markup):
+                    (root / "README.md").write_text(markup)
+                    with self.assertRaisesRegex(ValueError, "reader-doc link"):
+                        ARCHIVE.check_reader_links(root, ("README.md",))
+
+    def test_reader_links_cannot_depend_on_files_outside_repository(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "snapshot"
+            root.mkdir()
+            (root.parent / "outside.md").write_text("Not published\n")
+            (root / "README.md").write_text('[Outside](../outside.md)\n')
+            with self.assertRaisesRegex(ValueError, "out-of-repository"):
+                ARCHIVE.check_reader_links(root, ("README.md",))
+
     def test_source_only_folder_passes_without_git(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
