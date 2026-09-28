@@ -1,0 +1,82 @@
+{
+  "experiment": "E010",
+  "seed": 20260815,
+  "hypothesis": "Retraining the frozen E005 recipe on the 62 reserved complementary-fold trajectories will beat complementary-fold persistence on Rel-L2, TKE, and MVPE, and will not collapse at Re 6300 by more than 1.5 Rel-L2 or 3.0 TKE versus that fold's persistence.",
+  "comparator": "persistence on the frozen complementary fold, computed once in the same evaluation pass",
+  "split_config": "configs/e009_secondary_fold.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "train-only Gaussian statistics over the 62 reserved complementary-fold training files",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "split": "frozen complementary fold in configs/e009_secondary_fold.json",
+    "evaluations_during_training": 0,
+    "final_evaluations": 1,
+    "batch_size": 4,
+    "uncertainty": "official default interval",
+    "success_criteria": {
+      "overall_must_exceed_persistence": [
+        "rel_l2_score",
+        "tke_score",
+        "mvpe_score"
+      ],
+      "re_6300_max_score_regression_vs_persistence": {
+        "rel_l2_score": 1.5,
+        "tke_score": 3.0
+      },
+      "sps": "reported but excluded from the robustness gate because uncertainty is unchanged"
+    }
+  },
+  "controls_held_equal_to_e005": [
+    "released simulation-only CNO initialization",
+    "per-window physical relative squared u/v loss",
+    "train-only Gaussian input/target statistics",
+    "window membership and stride",
+    "model architecture",
+    "seed, shuffle order, batch size, and update count",
+    "optimizer, learning rate, scheduler, precision, and no gradient clipping",
+    "single fixed-final evaluation after training"
+  ],
+  "controls_changed_from_e005": [
+    "training files are the 62 reserved complementary-fold trajectories",
+    "the single evaluation uses the unused 19-file complementary fold rather than E002",
+    "E002 validation trajectories are in the E010 training set and must not be treated as holdout evidence"
+  ],
+  "promotion": "evidence only; do not package or submit from E010",
+  "limitations": [
+    "A pass supports the E005 recipe, not the E005/E008 checkpoint, because that checkpoint trained on these holdout files.",
+    "These complementary groups are unused-pool holdouts, not global dataset edges.",
+    "Default-interval SPS is not a promotion criterion.",
+    "Codabench scores are not used for parameter selection."
+  ]
+}

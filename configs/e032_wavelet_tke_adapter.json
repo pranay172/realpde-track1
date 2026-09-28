@@ -1,0 +1,71 @@
+{
+  "experiment": "E032",
+  "seed": 20260815,
+  "hypothesis": "Training a 3D Conv residual adapter (h=32, 2 blocks) on frozen real E005 CNO with MultiScaleWaveletTKELoss (decoupled mean + direct TKE relative error + multi-scale 2D Haar Wavelet fluctuation subband loss) for 600 updates will significantly boost single-model TKE to >= 73.00 while preserving Rel-L2 >= 94.40 and MVPE >= 95.00.",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "artifacts/e005_scale_balanced_uv/final.pth",
+  "model": {
+    "base_model_type": "cno",
+    "adapter": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "multi_scale_wavelet_tke",
+      "lambda_mean": 0.2,
+      "lambda_tke": 0.4,
+      "lambda_wavelet": 0.2,
+      "eps": 1e-6
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 1.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 20
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "persist_first_frames": 4,
+    "calibrated_uncertainty": {
+      "gamma": 1.0,
+      "beta_floor": 0.05,
+      "sigma_global": 0.0563870259
+    },
+    "controls": {
+      "initial_checkpoint": "artifacts/e005_scale_balanced_uv/final.pth",
+      "persist_first_frames": 4
+    },
+    "gates": {
+      "tke_minimum": 72.85,
+      "rel_l2_minimum": 94.40,
+      "mvpe_minimum": 95.00
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "experiment": "E038",
+  "seed": 20260815,
+  "hypothesis": "Replicate the 3000-update scale-balanced backbone recipe on Fold B. Compare raw and persist-first-4 against E010 and E028 with frozen intervals; no holdout used during training.",
+  "comparator": "E010 backbone and E028 rollout adapter, same Fold B",
+  "split_config": "configs/e009_secondary_fold.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "train-only Gaussian statistics over the 62 reserved complementary-fold training files",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "weight_decay": 0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0,
+    "batch_size": 4,
+    "num_updates": 3000,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 260
+  },
+  "evaluation": {
+    "arrays": "artifacts/e010_secondary_fold/arrays",
+    "windows": 376,
+    "persist_first_frames": 4,
+    "interval": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "reference": {
+      "rel_l2_score": 94.75,
+      "tke_score": 72.777,
+      "mvpe_score": 95.518,
+      "sps_score": 38.033
+    },
+    "minimum_deltas": {
+      "rel_l2_score": 0,
+      "mvpe_score": 0,
+      "tke_score": 0,
+      "sps_score": 0
+    },
+    "slice_max_regression": {
+      "rel_l2_score": 0.25,
+      "tke_score": 1,
+      "mvpe_score": 0.25
+    },
+    "reference_predictions": "artifacts/e028_fold_b_rollout/predictions.npy"
+  },
+  "promotion": "No submission. Compare single final checkpoint and report gates.",
+  "controls": "Exact E010 training controls except updates 600 -> 3000 and stretched cosine. E038 is validation evidence only."
+}

@@ -1,0 +1,91 @@
+{
+  "experiment": "E022",
+  "seed": 20260815,
+  "hypothesis": "A frozen real-adapted E005 CNO plus a dual-head 3D Conv residual adapter (field + heteroskedastic log-variance uncertainty) trained with scale-balanced relative loss, decoupled temporal mean wake loss, and Gaussian NLL will beat E019 on SPS (>39.0) and improve/preserve Rel-L2 (>=94.55), MVPE (>=95.20), and TKE (>=72.00) without low-Re collapse.",
+  "comparator": "E019 persist-first-4 on Fold A: Rel-L2 94.61865179222934, TKE 72.25497144905917, MVPE 95.30172912513669, SPS 38.64473611097971",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "artifacts/e005_scale_balanced_uv/final.pth",
+  "model": {
+    "wrapper": "heteroskedastic_residual_cno",
+    "base_model_type": "cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "adapter": {
+      "name": "heteroskedastic_residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "uncertainty_channels": 2,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true,
+      "initial_log_var": -4.0
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "unchanged E003/E005 per-channel Gaussian statistics over every training-window element",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 1e-4,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "heteroskedastic_residual_loss",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "lambda_mean": 0.1,
+      "lambda_nll": 0.05
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 1.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "evaluations_during_training": 0,
+    "final_evaluations": 1,
+    "batch_size": 4,
+    "persist_first_frames": 4,
+    "e019_persist_first_4": {
+      "rel_l2_score": 94.61865179222934,
+      "tke_score": 72.25497144905917,
+      "mvpe_score": 95.30172912513669,
+      "calibrated_sps_score": 38.64473611097971,
+      "by_nominal_re": {
+        "3750": {
+          "rel_l2_score": 93.68472134148462,
+          "tke_score": 70.46473576652294,
+          "mvpe_score": 94.12741415929109
+        }
+      }
+    },
+    "success_criteria": {
+      "sps_score_min": 39.0,
+      "rel_l2_score_min": 94.55,
+      "mvpe_score_min": 95.20,
+      "tke_score_min": 72.00,
+      "re_3750_persist_first_4_min": {
+        "rel_l2_score": 93.5,
+        "tke_score": 70.0,
+        "mvpe_score": 94.0
+      }
+    }
+  }
+}

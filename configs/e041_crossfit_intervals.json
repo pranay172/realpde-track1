@@ -1,0 +1,15 @@
+{
+  "experiment": "E041",
+  "purpose": "Exploratory leave-one-Re-group-out interval calibration on saved clean predictions; no point training or point changes",
+  "evidence_limit": "Existing development folds have informed model selection. Cross-fitting prevents direct calibration-target leakage but is not a fresh final audit or nested training-only OOF. No deployment weights produced.",
+  "models": [
+    {"name": "E039A", "config": "configs/e039a_long_backbone_rollout.json", "artifacts": "artifacts/e039a_long_backbone_rollout"},
+    {"name": "E038", "config": "configs/e038_fold_b_long_backbone.json", "artifacts": "artifacts/e038_fold_b_long_backbone"}
+  ],
+  "multipliers": [1.0, 0.5, 0.75, 1.25, 1.5, 2.0],
+  "horizons": [[0, 4], [4, 10], [10, 20]],
+  "conditioning": "median input temporal standard deviation; median fitted on calibration groups only",
+  "variants": ["channel_horizon", "channel_horizon_input_variance"],
+  "screen_gate": {"minimum_sps_gain_each_fold": 0.3, "maximum_re_sps_regression": 0.5},
+  "next_step": "Only a promising locked mechanism justifies a new disjoint calibration/audit protocol. Do not mix A and B residuals or touch Fold C."
+}

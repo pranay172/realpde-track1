@@ -1,0 +1,115 @@
+{
+  "experiment": "E018",
+  "seed": 20260815,
+  "hypothesis": "A frozen simulation-pretrained CNO plus a zero-init residual Conv3d adapter trained only on E002 real windows with the E005 relative u/v loss will beat E013 persist-first-4 on Fold A Rel-L2 and MVPE with at most 1.0 TKE regression and without collapsing Re 3750 beyond the preregistered allowances.",
+  "comparator": "E013 persist-first-4 on Fold A: Rel-L2 94.54135815777938, TKE 72.25424795631467, MVPE 95.20480086031074, calibrated SPS 38.086005352050464",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "model": {
+    "wrapper": "residual_cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "last_block_unfreeze": false,
+    "adapter": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 16,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "unchanged E003/E005 per-channel Gaussian statistics over every training-window element",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "evaluations_during_training": 0,
+    "final_evaluations": 1,
+    "batch_size": 4,
+    "persist_first_frames": 4,
+    "interval": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "e013_persist_first_4": {
+      "rel_l2_score": 94.54135815777938,
+      "tke_score": 72.25424795631467,
+      "mvpe_score": 95.20480086031074,
+      "calibrated_sps_score": 38.086005352050464,
+      "by_nominal_re": {
+        "3750": {
+          "rel_l2_score": 93.7515700178745,
+          "tke_score": 70.39499382525487,
+          "mvpe_score": 93.96650739510449
+        }
+      }
+    },
+    "success_criteria": {
+      "persist_first_4_must_beat_e013": ["rel_l2_score", "mvpe_score"],
+      "persist_first_4_tke_max_regression_vs_e013": 1.0,
+      "re_3750_persist_first_4_max_regression_vs_e013": {
+        "rel_l2_score": 1.0,
+        "tke_score": 2.0,
+        "mvpe_score": 1.0
+      },
+      "sps": "reported on the frozen E006 interval; excluded from the adapter-ablation gate"
+    }
+  },
+  "controls_held_equal_to_e005": [
+    "released simulation-only CNO initialization",
+    "64 E002 training trajectories and bad-file exclusion",
+    "train-only Gaussian input/target statistics",
+    "window membership and stride",
+    "per-window physical relative squared u/v loss",
+    "seed, shuffle order, batch size, and update count",
+    "optimizer, learning rate, scheduler, precision, and no gradient clipping",
+    "single fixed-final Fold A evaluation"
+  ],
+  "controls_changed_from_e005": [
+    "CNO weights stay frozen in eval mode; only the residual adapter is trained",
+    "last CNO blocks stay frozen",
+    "evaluation scores raw residual-CNO and persist-first-4 with the frozen interval"
+  ],
+  "promotion": "evidence only; package only if the Fold A persist-first-4 gates pass, then confirm Fold B before any submission",
+  "limitations": [
+    "A 10k-parameter adapter may be too small if the frozen sim CNO is far from real PIV.",
+    "No last-block unfreeze in this run.",
+    "Fold C is not loaded. E018 may be ranked only on Fold A.",
+    "Codabench scores are not used. Persist-first k and the interval stay frozen."
+  ]
+}

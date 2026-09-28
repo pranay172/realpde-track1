@@ -1,0 +1,107 @@
+{
+  "experiment": "E016",
+  "seed": 20260815,
+  "hypothesis": "Training the E005 CNO recipe with L_rel + 0.3 L_mean + 0.3 L_fluct + 0.1 L_TKE will beat E013 persist-first-4 on Fold A Rel-L2 and MVPE with at most 1.0 TKE regression.",
+  "comparator": "E013 persist-first-4 on Fold A: Rel-L2 94.54135815777938, TKE 72.25424795631467, MVPE 95.20480086031074, calibrated SPS 38.086005352050464",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "unchanged E003/E005 per-channel Gaussian statistics over every training-window element",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "split_mean_fluct_tke",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "tke_denominator_epsilon": 1e-8,
+      "lambda_mean": 0.3,
+      "lambda_fluct": 0.3,
+      "lambda_tke": 0.1,
+      "lambda_spectrum": 0.0,
+      "field": "per_window_physical_relative_mse",
+      "mean": "per_window_temporal_mean_relative_mse",
+      "fluct": "per_window_zero_mean_relative_mse",
+      "tke": "per_window_official_tke_relative_l2",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "evaluations_during_training": 0,
+    "final_evaluations": 1,
+    "batch_size": 4,
+    "persist_first_frames": 4,
+    "interval": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "e013_persist_first_4": {
+      "rel_l2_score": 94.54135815777938,
+      "tke_score": 72.25424795631467,
+      "mvpe_score": 95.20480086031074,
+      "calibrated_sps_score": 38.086005352050464,
+      "by_nominal_re": {
+        "3750": {
+          "rel_l2_score": 93.7515700178745,
+          "tke_score": 70.39499382525487,
+          "mvpe_score": 93.96650739510449
+        }
+      }
+    },
+    "success_criteria": {
+      "persist_first_4_must_beat_e013": ["rel_l2_score", "mvpe_score"],
+      "persist_first_4_tke_max_regression_vs_e013": 1.0,
+      "re_3750_persist_first_4_max_regression_vs_e013": {
+        "rel_l2_score": 1.0,
+        "tke_score": 2.0,
+        "mvpe_score": 1.0
+      },
+      "sps": "reported on the frozen E006 interval; excluded from the loss-ablation gate"
+    }
+  },
+  "controls_held_equal_to_e005": [
+    "released simulation-only CNO initialization",
+    "64 E002 training trajectories and bad-file exclusion",
+    "train-only Gaussian input/target statistics",
+    "window membership and stride",
+    "model architecture",
+    "seed, shuffle order, batch size, and update count",
+    "optimizer, learning rate, scheduler, precision, and no gradient clipping",
+    "single fixed-final Fold A evaluation"
+  ],
+  "controls_changed_from_e005": [
+    "loss is L_rel + 0.3 L_mean + 0.3 L_fluct + 0.1 L_TKE",
+    "evaluation scores raw CNO and persist-first-4 with the frozen interval"
+  ],
+  "promotion": "evidence only; package only if the Fold A persist-first-4 gates pass, then confirm Fold B before any submission",
+  "limitations": [
+    "TKE relative L2 is O(1) while L_rel is O(0.02), so lambda_tke=0.1 can dominate late training.",
+    "L_mean is the full-field temporal mean, not the official MVPE probe stencil.",
+    "No log-spectrum term in this run.",
+    "Fold C is not loaded. E016 may be ranked only on Fold A.",
+    "Codabench scores are not used. Persist-first k and the interval stay frozen."
+  ]
+}

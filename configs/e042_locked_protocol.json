@@ -1,0 +1,152 @@
+{
+  "experiment": "E042",
+  "status": "registered_awaiting_compute_approval",
+  "training_config": "configs/e042_clean_backbone.json",
+  "point_split": "configs/e042_point_split.json",
+  "point_training_files": [
+    "10125_0.h5",
+    "10125_10.h5",
+    "10125_15.h5",
+    "10125_20.h5",
+    "10125_5.h5",
+    "12675_0.h5",
+    "12675_10.h5",
+    "12675_15.h5",
+    "12675_20.h5",
+    "12675_5.h5",
+    "13950_0.h5",
+    "13950_10.h5",
+    "13950_15.h5",
+    "13950_20.h5",
+    "13950_5.h5",
+    "17775_10.h5",
+    "17775_15.h5",
+    "17775_20.h5",
+    "17775_5.h5",
+    "19050_0.h5",
+    "19050_10.h5",
+    "19050_15.h5",
+    "19050_20.h5",
+    "19050_5.h5",
+    "21600_0.h5",
+    "21600_10.h5",
+    "21600_15.h5",
+    "21600_20.h5",
+    "21600_5.h5",
+    "24150_0.h5",
+    "24150_10.h5",
+    "24150_15.h5",
+    "24150_20.h5",
+    "6300_0.h5",
+    "6300_10.h5",
+    "6300_15.h5",
+    "6300_20.h5",
+    "6300_5.h5",
+    "7575_10.h5",
+    "7575_15.h5",
+    "7575_20.h5",
+    "7575_5.h5",
+    "8850_0.h5",
+    "8850_10.h5",
+    "8850_15.h5",
+    "8850_20.h5",
+    "8850_5.h5"
+  ],
+  "calibration_files": [
+    "11400_0.h5",
+    "11400_10.h5",
+    "11400_15.h5",
+    "11400_20.h5",
+    "11400_5.h5",
+    "20325_0.h5",
+    "20325_10.h5",
+    "20325_15.h5",
+    "20325_20.h5",
+    "20325_5.h5",
+    "26700_0.h5",
+    "26700_10.h5",
+    "26700_15.h5",
+    "3750_0.h5",
+    "3750_10.h5",
+    "3750_20.h5",
+    "3750_5.h5"
+  ],
+  "audit_files": [
+    "16500_0.h5",
+    "16500_10.h5",
+    "16500_15.h5",
+    "16500_20.h5",
+    "16500_5.h5",
+    "22875_0.h5",
+    "22875_10.h5",
+    "22875_15.h5",
+    "25425_0.h5",
+    "25425_10.h5",
+    "25425_15.h5",
+    "25425_20.h5",
+    "5025_0.h5",
+    "5025_10.h5",
+    "5025_15.h5",
+    "5025_20.h5",
+    "5025_5.h5"
+  ],
+  "calibration_arrays": "artifacts/e002_validation/arrays",
+  "audit_arrays": "artifacts/e012_multifold/fold_c/arrays",
+  "point_artifacts": "artifacts/e042_clean_backbone",
+  "mechanism": {
+    "multipliers": [
+      1,
+      0.5,
+      0.75,
+      1.25,
+      1.5,
+      2
+    ],
+    "horizons": [
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        10
+      ],
+      [
+        10,
+        20
+      ]
+    ],
+    "conditioning": "median input temporal standard deviation; median fit on calibration only",
+    "alpha": 0.025,
+    "beta": 0.15,
+    "persist_first_frames": 4,
+    "variant": "channel_horizon_input_variance"
+  },
+  "gates": {
+    "sps_gain_minimum": 0.3,
+    "worst_re_sps_delta_minimum": -0.5,
+    "point_predictions_bitwise_unchanged": true,
+    "finite_outputs": true,
+    "pressure_bounds_exact_zero": true,
+    "batch_and_repeat_invariance": true
+  },
+  "budget": {
+    "backbone_updates": 3000,
+    "maximum_wall_minutes": 260,
+    "estimated_gpu_hours": 3,
+    "early_stopping": {
+      "window": 200,
+      "min_updates": 1000,
+      "patience": 600,
+      "relative_improvement": 0.01
+    },
+    "no_automatic_retry": true
+  },
+  "audit_policy": "Fit one threshold and 12 multiplier choices on Fold A only; freeze artifact and hashes before accessing C fields. Evaluate C once, baseline versus locked bounds on identical points. No fallback tuning or alternate point selection after C. Stop on gate failure.",
+  "limitations": [
+    "Fold C appeared in prior development models' training, but no prior learned C evaluation selected E041. E042 excludes it entirely.",
+    "47 point-training trajectories differ from prior substrates; this is a calibration transfer audit, not a point-model superiority comparison.",
+    "This backbone-only audit does not certify transfer to E037's all-public backbone plus adapter.",
+    "Passing does not authorize deployment or establish leaderboard score above 80."
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "experiment": "E025_heteroskedastic",
+  "seed": 20260815,
+  "hypothesis": "The E022 heteroskedastic residual recipe, retrained on Fold B with a frozen E010 CNO, produces a valid ensemble member. Quality is judged only after the three-member Fold B ensemble is scored.",
+  "comparator": "E020 persist-first-4 on Fold B: Rel-L2 94.54248360638022, TKE 72.65038391468373, MVPE 95.20303662680355, SPS 37.20160182146751",
+  "split_config": "configs/e009_secondary_fold.json",
+  "initial_checkpoint": "artifacts/e010_secondary_fold/final.pth",
+  "model": {
+    "wrapper": "heteroskedastic_residual_cno",
+    "base_model_type": "cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "adapter": {
+      "name": "heteroskedastic_residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "uncertainty_channels": 2,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true,
+      "initial_log_var": -4.0
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "train-only Gaussian statistics over the 62 reserved Fold B training files",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 1e-4,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "heteroskedastic_residual_loss",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "lambda_mean": 0.1,
+      "lambda_nll": 0.05
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 1.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "fold": "B",
+    "arrays": "artifacts/e010_secondary_fold/arrays",
+    "persist_first_frames": 4
+  },
+  "promotion": "member only; do not package from this checkpoint",
+  "limitations": [
+    "Learned log-variance is training-only. Ensemble SPS uses the frozen E006 interval.",
+    "Fold A and Fold C are not loaded.",
+    "Do not score this member alone as the E025 result."
+  ]
+}

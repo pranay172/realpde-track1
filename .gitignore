@@ -1,0 +1,60 @@
+# Python caches and tooling
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environments and caches
+.venv/
+.venv-*/
+.cache/
+
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Competition data and model artifacts
+*.h5
+*.hdf5
+*.pth
+*.pt
+*.ckpt
+*.npy
+*.npz
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+data/
+datasets/
+checkpoints/
+ckpts/
+
+# Generated experiments and submissions
+artifacts/
+outputs/
+results/
+runs/
+wandb/
+build/
+dist/
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# External organizer material: acquire locally, never commit to this snapshot
+realpde_*_starting_kit_*/
+competition_docs/
+ENVIRONMENT_SETUP_ARCHIVE.md
+LOCAL_INVENTORY.md

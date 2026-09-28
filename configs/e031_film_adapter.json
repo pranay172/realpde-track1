@@ -1,0 +1,76 @@
+{
+  "experiment": "E031",
+  "seed": 20260815,
+  "hypothesis": "A Physics-Conditioned Invariant FiLM Residual Adapter (Idea I023, 3D Conv, h=32, 2 blocks) that dynamically modulates feature maps via extracted flow invariants (inflow speed, angle of attack proxy, turbulence intensity, wake energy) trained with a 2-stage rollout curriculum (300 teacher forcing + 300 2-step rollout, p=0.5) will improve Fold A quality to Rel-L2 >= 94.75, MVPE >= 95.40, and TKE >= 72.40 with enhanced low-Re 3750 adaptation.",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "artifacts/e005_scale_balanced_uv/final.pth",
+  "model": {
+    "base_model_type": "cno",
+    "adapter": {
+      "name": "film_residual_conv3d",
+      "in_channels": 6,
+      "out_channels": 3,
+      "flow_dim": 4,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 30,
+    "spatial_stride": 2,
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "scale_balanced_relative_l2",
+      "p": 2,
+      "epsilon": 1e-6
+    },
+    "curriculum": {
+      "phase1_updates": 300,
+      "phase2_updates": 300,
+      "rollout_prob": 0.5,
+      "rollout_steps": 2
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 1.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 20
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "persist_first_frames": 4,
+    "calibrated_uncertainty": {
+      "gamma": 1.0,
+      "beta_floor": 0.05,
+      "sigma_global": 0.0563870259
+    },
+    "controls": {
+      "initial_checkpoint": "realpde_t1_starting_kit_v9/model_weights/cno.pt",
+      "persist_first_frames": 4
+    },
+    "gates": {
+      "rel_l2_minimum": 94.75,
+      "mvpe_minimum": 95.40,
+      "tke_minimum": 72.35,
+      "re_3750_rel_l2_minimum": 93.85
+    }
+  }
+}

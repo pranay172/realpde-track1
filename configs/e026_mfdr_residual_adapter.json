@@ -1,0 +1,82 @@
+{
+  "experiment": "E026",
+  "seed": 20260815,
+  "hypothesis": "A frozen real-adapted E005 CNO plus a zero-init 3D Conv residual adapter trained with Decoupled Mean-Fluctuation Regularization (MFDR) and log-spectral penalty on zero-mean fluctuations will improve wake dynamics and turbulence energy, beating E019 on Fold A Rel-L2 (>=94.62) and MVPE (>=95.30) with TKE >= 72.25 without low-Re collapse.",
+  "comparator": "E019 persist-first-4 on Fold A: Rel-L2 94.6187, TKE 72.2550, MVPE 95.3017, calibrated SPS 38.6447",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "artifacts/e005_scale_balanced_uv/final.pth",
+  "model": {
+    "wrapper": "residual_cno",
+    "base_model_type": "cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "last_block_unfreeze": false,
+    "adapter": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "artifacts/e005_scale_balanced_uv/normalizer.json",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "mfdr_spectral_loss",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "tke_denominator_epsilon": 1e-8,
+      "spectral_epsilon": 1e-6,
+      "lambda_mean": 0.20,
+      "lambda_fluct": 0.10,
+      "lambda_tke": 0.05,
+      "lambda_spec": 0.02
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "windows": 357,
+    "persist_first_frames": 4,
+    "uncertainty": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "acceptance_gates": {
+      "rel_l2_score_min": 94.62,
+      "mvpe_score_min": 95.30,
+      "tke_score_min": 72.25,
+      "sps_score_min": 38.65,
+      "re_3750_rel_l2_min": 93.5,
+      "re_3750_tke_min": 70.0,
+      "re_3750_mvpe_min": 94.0
+    }
+  }
+}

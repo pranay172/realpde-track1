@@ -1,0 +1,73 @@
+{
+  "experiment": "E008",
+  "hypothesis": "Fixed singleton micro-batching removes E007's dependence on evaluator batch composition while preserving its canonical single-sample outputs and remaining safely below the five-minute limit.",
+  "single_change_from_e007": "candidate.point_batch_size: 4 -> 1",
+  "candidate": {
+    "wrapper": "submission/e008/submission.py",
+    "checkpoint": "artifacts/e005_scale_balanced_uv/final.pth",
+    "checkpoint_sha256": "389f42f3509526b232b3064e168fd652c5668183f8739218cc8dc998d1c5edba",
+    "model_type": "cno",
+    "point_batch_size": 1,
+    "normalizer": "artifacts/e005_scale_balanced_uv/normalizer.json",
+    "uncertainty": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259,
+      "pressure_bounds": "exactly zero"
+    }
+  },
+  "package": {
+    "archive": "artifacts/e008_submission/e006_candidate.zip",
+    "required_root_entries": [
+      "submission.py",
+      "model.pth",
+      "load_baseline.py",
+      "rpde_baselines",
+      "_vendor"
+    ],
+    "maximum_extracted_bytes": 256000000,
+    "forbid_python_cache_files": true
+  },
+  "acceptance": {
+    "official_image": "pytorch/pytorch:2.2.2-cuda12.1-cudnn8-runtime",
+    "official_image_digest": "sha256:923f687790bec78081c357e71dcd5dcef80b0cc00f6c34484902a5e83362c854",
+    "network": "none",
+    "container_filesystem": "read-only except /tmp and result mount",
+    "public_contract_windows": {
+      "source": "example_data/3750_0.h5",
+      "starts": [0, 40],
+      "purpose": "contract testing only; not model selection evidence"
+    },
+    "reference_public_batch1_source": "E007 official Torch 2.2.2 batch1_process_a",
+    "reference_public_batch1_sha256": {
+      "lower": "2df8c79c4494025e6f3793131aa394384a6e8236793dc6ea752b103e96dd3c78",
+      "prediction": "36422e1dbfae08e44ac5cf3e3473fa51a982fa6ff9eb7ce3c868d7c0edc03589",
+      "upper": "0862f26a43a9a4cce44bd88dc9a18b8e8d4c66a25aac69535ce266cdf80b4ca2"
+    },
+    "required_output_keys": ["lower", "prediction", "upper"],
+    "require_float32_finite_exact_shape": true,
+    "require_lower_le_prediction_le_upper": true,
+    "require_zero_pressure_for_all_outputs": true,
+    "require_same_process_exact_repeat": true,
+    "require_fresh_process_exact_repeat": true,
+    "batch_invariance_rtol": 1e-6,
+    "batch_invariance_atol": 1e-7,
+    "maximum_whole_process_seconds": 300,
+    "local_gpu_whole_run_proxy": {
+      "samples": 357,
+      "construction": "cycle the two public contract windows; no additional field data",
+      "maximum_seconds_including_warmup_and_model_load": 300,
+      "e007_proxy_predict_seconds": 24.84252682099941,
+      "interpretation": "supplementary RTX 5050/Torch 2.7.1 evidence for the A800/Torch 2.2.2 limit"
+    },
+    "require_official_scorer_with_custom_bounds": true
+  },
+  "controls": [
+    "Only the internal point-model micro-batch size changes from E007.",
+    "No E002 validation target or prediction is read by E008.",
+    "The E005 checkpoint, normalizer, E006 interval, public inputs, tolerances, and archive contents remain frozen.",
+    "The E008 public batch-1 prediction and bounds must exactly match E007's official-image hashes.",
+    "The official container remains networkless, capability-free, and read-only outside /tmp and the result mount."
+  ],
+  "decision_rule": "Promote and retain the archive only if every unchanged E007 gate passes, batch-1 and batch-2 outputs satisfy the frozen tolerance, the canonical E007 batch-1 hashes match exactly, and the 357-sample GPU proxy remains below 300 seconds."
+}

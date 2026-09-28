@@ -1,0 +1,46 @@
+{
+  "experiment": "E042",
+  "seed": 20260815,
+  "hypothesis": "Train a clean substrate excluding calibration Fold A and audit Fold C; test locked E041 intervals, not backbone scaling.",
+  "comparator": "Same E042 point predictions with frozen existing bounds",
+  "split_config": "configs/e042_point_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "Gaussian statistics from the 47 point-training trajectories only",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "weight_decay": 0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0,
+    "batch_size": 4,
+    "num_updates": 3000,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 260
+  },
+  "promotion": "Audit substrate only; no submission or automatic all-public training",
+  "controls": "E038 3000-update recipe with training-only plateau stopping on a disjoint point-training set; no adapters or architecture selection using C."
+}

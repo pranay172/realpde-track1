@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""Train the preregistered E016 split-loss CNO ablation."""
+
+from pathlib import Path
+
+from e003_train_cno import main
+
+
+REPO = Path(__file__).resolve().parents[1]
+
+
+if __name__ == "__main__":
+    main(
+        default_config=REPO / "configs" / "e016_split_loss.json",
+        default_artifacts=REPO / "artifacts" / "e016_split_loss",
+    )

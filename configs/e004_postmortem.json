@@ -1,0 +1,34 @@
+{
+  "experiment": "E004",
+  "source_experiment": "E003",
+  "hypothesis": "E003's edge failure is systematic across both held-out edge Reynolds groups and is associated with material BatchNorm running-state adaptation despite comparatively conservative global trainable-parameter movement.",
+  "scope": "Saved-artifact analysis only: no training, model construction, model forward, or new validation inference.",
+  "sources": {
+    "prediction": "artifacts/e003_cno_finetune/predictions.npy",
+    "evaluation": "artifacts/e003_cno_finetune/evaluation.json",
+    "final_checkpoint": "artifacts/e003_cno_finetune/final.pth",
+    "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+    "validation_inputs": "artifacts/e002_validation/arrays/inputs.npy",
+    "validation_targets": "artifacts/e002_validation/arrays/targets.npy",
+    "validation_windows": "artifacts/e002_validation/arrays/windows.json",
+    "persistence_report": "artifacts/e002_validation/report.json"
+  },
+  "analyses": [
+    "official quality metrics by stratum, nominal Reynolds number, and angle of attack",
+    "E003-minus-persistence error and score differences",
+    "relative-L2 error by forecast lead and window start",
+    "target/prediction channel moments and target zero fractions by Reynolds number",
+    "initial-to-final trainable-parameter and BatchNorm running-state drift"
+  ],
+  "decision_rule": {
+    "both_edge_re_raw_rel_l2_worse_than_persistence": true,
+    "batchnorm_running_mean_standardized_rms_min": 0.5,
+    "global_trainable_parameter_relative_l2_max": 0.1,
+    "if_all_hold": "Pre-register one isolated BatchNorm-running-state freeze ablation before changing normalization or sampling.",
+    "otherwise": "Do not prioritize BatchNorm freezing; use the per-regime diagnostics to choose a normalization or sampling hypothesis."
+  },
+  "limitations": [
+    "This post-hoc analysis can identify associations but cannot establish that BatchNorm drift caused the OOD failure.",
+    "Further reuse of E002 validation diagnostics increases model-selection pressure on the frozen split and must be recorded."
+  ]
+}

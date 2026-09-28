@@ -1,0 +1,89 @@
+{
+  "experiment": "E009",
+  "seed": 20260815,
+  "hypothesis": "Selecting the frozen E006 interval grid on residuals from an E005-recipe CNO that never trained on the calibration Reynolds groups will either choose a different (alpha, beta) than E006's (0.025, 0.15) or assign that E006 interval an out-of-fold calibration SPS at least 3.0 points below E006's in-sample calibration SPS of 36.250.",
+  "comparator": "E006 in-sample residual calibration on the same 45-candidate grid and same calibration Reynolds groups",
+  "split_config": "configs/e002_split.json",
+  "secondary_fold_config": "configs/e009_secondary_fold.json",
+  "point_model": "artifacts/e005_scale_balanced_uv/final.pth",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "training_nominal_re": [6300, 7575, 8850, 10125, 13950, 16500, 17775, 21600, 22875, 24150],
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "train-only Gaussian statistics over the 45 OOF-training files",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "interval": {
+    "formula": "half_width = alpha * abs(point_prediction) + beta * sigma_global",
+    "sigma_global": 0.0563870259,
+    "alpha_grid": [0.0, 0.025, 0.05, 0.075, 0.1],
+    "beta_grid": [0.0, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.25, 0.3],
+    "default_alpha": 0.05,
+    "default_beta": 0.0,
+    "e006_alpha": 0.025,
+    "e006_beta": 0.15,
+    "e006_in_sample_calibration_sps": 36.250,
+    "selection": "maximum OOF-calibration SPS; deterministic candidate-list order breaks exact ties",
+    "pressure_bounds": "exactly zero"
+  },
+  "training_side_calibration": {
+    "calibration_nominal_re": [5025, 12675, 19050, 25425],
+    "diagnostic_nominal_re": "the 10 OOF-training Reynolds groups; recorded only, never used for selection",
+    "window_stride": 20,
+    "batch_size": 4,
+    "preload_trajectories": true,
+    "num_workers": 0,
+    "minimum_oof_calibration_sps_gain_vs_default": 1.0,
+    "minimum_e006_interval_oof_sps_drop_vs_e006_in_sample": 3.0
+  },
+  "final_evaluation": {
+    "source": "saved E005 E002-validation point predictions; no new E005 inference",
+    "evaluations": 1,
+    "point_prediction_must_be_bitwise_unchanged": true,
+    "promotion": "evidence only; do not package or submit from E009"
+  },
+  "controls": [
+    "E005 checkpoint and saved E002 point predictions remain the deployed point model",
+    "OOF CNO uses the E005 recipe except that it trains on the 45 non-calibration E002-training files only",
+    "candidate grid and selection rule are identical to E006 and frozen before OOF residual inference",
+    "interval selection uses only the 19 calibration-Re trajectories, which the OOF model never trained on",
+    "in-sample residuals on the 45 OOF-training files are diagnostic only",
+    "E002 validation targets are used once after interval selection",
+    "secondary-fold membership is frozen in configs/e009_secondary_fold.json and is not used for E009 selection or scoring",
+    "Codabench scores are not used for parameter selection"
+  ],
+  "limitations": [
+    "One complementary OOF model is not a full k-fold residual estimate.",
+    "The OOF model sees 45 rather than 64 files, so its residual scale may differ from E005 even beyond in-sample optimism.",
+    "The single E002 split still carries prior selection pressure; E009 does not consume the secondary fold.",
+    "Local RTX 5050 timing is not directly comparable with Codabench A800 timing."
+  ]
+}

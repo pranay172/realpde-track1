@@ -1,0 +1,73 @@
+{
+  "experiment": "E021",
+  "hypothesis": "Packaging the multi-fold-validated E019 Residual CNO (frozen real E005 backbone + 10.8k residual adapter) with persist-first-4, singleton micro-batching, and calibrated uncertainty will pass every official local submission gate, maintain exact batch invariance, execute within 5 minutes, and provide a direct model-quality upgrade over E013 on Codabench.",
+  "single_change_from_e013": "replace the base CNO with ResidualCNO (trained 3D Conv residual adapter on top of frozen real E005 CNO)",
+  "candidate": {
+    "wrapper": "submission/e021/submission.py",
+    "checkpoint": "artifacts/e019_residual_adapter_e005/final.pth",
+    "checkpoint_sha256": "81ef986e91ad6c2733bd4e3e647b402e4550f0d87d03d71fc86a3cee8b8023c8",
+    "model_kind": "residual_cno",
+    "point_batch_size": 1,
+    "persist_first_frames": 4,
+    "normalizer": "artifacts/e005_scale_balanced_uv/normalizer.json",
+    "uncertainty": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259,
+      "pressure_bounds": "exactly zero"
+    }
+  },
+  "package": {
+    "archive": "artifacts/e021_submission/e021_candidate.zip",
+    "required_root_entries": [
+      "submission.py",
+      "model.pth",
+      "load_baseline.py",
+      "rpde_baselines",
+      "_vendor"
+    ],
+    "maximum_extracted_bytes": 256000000,
+    "forbid_python_cache_files": true
+  },
+  "acceptance": {
+    "official_image": "pytorch/pytorch:2.2.2-cuda12.1-cudnn8-runtime",
+    "official_image_digest": "sha256:923f687790bec78081c357e71dcd5dcef80b0cc00f6c34484902a5e83362c854",
+    "network": "none",
+    "container_filesystem": "read-only except /tmp and result mount",
+    "public_contract_windows": {
+      "source": "example_data/3750_0.h5",
+      "starts": [0, 40],
+      "purpose": "contract testing only; not model selection evidence"
+    },
+    "required_output_keys": ["lower", "prediction", "upper"],
+    "require_float32_finite_exact_shape": true,
+    "require_lower_le_prediction_le_upper": true,
+    "require_zero_pressure_for_all_outputs": true,
+    "require_same_process_exact_repeat": true,
+    "require_fresh_process_exact_repeat": true,
+    "batch_invariance_rtol": 1e-6,
+    "batch_invariance_atol": 1e-7,
+    "maximum_whole_process_seconds": 300,
+    "local_gpu_whole_run_proxy": {
+      "samples": 357,
+      "construction": "cycle the two public contract windows; no additional field data",
+      "maximum_seconds_including_warmup_and_model_load": 300,
+      "interpretation": "supplementary RTX 5050/Torch 2.7.1 evidence for the A800/Torch 2.2.2 limit"
+    },
+    "require_official_scorer_with_custom_bounds": true
+  },
+  "controls": [
+    "k=4 is frozen from E012/E013 and is not retuned",
+    "The E005 backbone weights, normalizer, E006 interval, and singleton batching remain unchanged",
+    "Residual adapter has 10,835 trainable parameters and was trained on Fold A (E019) with E005 relative loss",
+    "Multi-fold validation on Fold B (E020) confirmed split robustness",
+    "Bounds are computed on the hybrid persist-first-4 prediction",
+    "Codabench scores are not used for parameter selection"
+  ],
+  "decision_rule": "Promote and retain the archive only if every package, official-container, bounds, determinism, scorer, and runtime gate passes.",
+  "promotion": "submission candidate if all local gates pass; E013 remains the scored Codabench baseline until a new official result is recorded",
+  "limitations": [
+    "Clean quality evidence is the E019 Fold A row (94.619 Rel-L2, 72.255 TKE, 95.302 MVPE, 38.645 SPS) and E020 Fold B row (94.542 Rel-L2, 72.650 TKE, 95.203 MVPE, 37.202 SPS).",
+    "Local RTX 5050/Torch 2.7.1 timing is not the official A800/Torch 2.2.2 measurement."
+  ]
+}

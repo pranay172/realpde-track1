@@ -1,0 +1,51 @@
+{
+  "experiment": "E014",
+  "phase": "preflight",
+  "seed": 20260815,
+  "hypothesis": "Zero-shot released sim-only FNO on Fold A is a viable fine-tune start if, after persist-first-4, the better of the two preregistered normalizers beats persistence on TKE and MVPE.",
+  "comparator": "Fold A persistence and E013 persist-first-4 CNO; E003 is a clean CNO negative reference only",
+  "split_config": "configs/e002_split.json",
+  "checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_fno.pth",
+  "model_type": "fno",
+  "persist_first_frames": 4,
+  "interval": {
+    "alpha": 0.025,
+    "beta": 0.15,
+    "sigma_global": 0.0563870259
+  },
+  "normalizers": {
+    "official_real_train": {
+      "source": "realpde_t1_starting_kit_v9/submission_example_fno.py",
+      "mean_input": [0.154960856, -0.000513992854, 0.0],
+      "std_input": [0.0968056545, 0.015960684, 1.0],
+      "mean_target": [0.154962569, -0.000517793698, 0.0],
+      "std_target": [0.0968104079, 0.0159636438, 1.0]
+    },
+    "train_sim": {
+      "source": "computed over released train_sim windows with E005 WindowGeometry"
+    }
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "batch_size": 1,
+    "device": "cuda"
+  },
+  "success_criteria": {
+    "better_normalizer_persist_first_4_must_beat_persistence": ["tke_score", "mvpe_score"],
+    "rel_l2_may_lose_to_persistence_without_killing_fine_tune": true
+  },
+  "controls": [
+    "No fine-tuning and no sim_real_ft FNO",
+    "Fold C is not loaded",
+    "k=4 and the E006 interval stay frozen",
+    "Both normalizers are reported; selection of 'better' uses TKE+MVPE only after both are computed",
+    "Codabench scores are not used"
+  ],
+  "promotion": "evidence only; do not package. A pass only authorizes a later FNO fine-tune experiment",
+  "limitations": [
+    "Zero-shot sim-to-real is not the same as an E005-recipe fine-tune.",
+    "Official real-train stats are a domain-stat swap, not the stats used in sim pretraining.",
+    "fp16 packing is officially discouraged; this preflight uses the fp32 sim_fno checkpoint."
+  ]
+}

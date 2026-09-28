@@ -1,0 +1,68 @@
+{
+  "experiment": "E030",
+  "seed": 20260815,
+  "hypothesis": "Training a SpatialUncertaintyNet (3D Conv, h=32) to predict local pixel-level residual error scales on top of frozen E027 champion point predictions using SmoothSPSLoss + Laplace NLL will significantly improve Fold A SPS score from 39.257 to >= 45.0 with >= 80% coverage while preserving deterministic point metrics (Rel-L2 94.751, MVPE 95.438, TKE 72.388).",
+  "split_config": "configs/e002_split.json",
+  "point_checkpoint": "artifacts/e027_residual_rollout/final.pth",
+  "model": {
+    "name": "spatial_uncertainty_net",
+    "in_channels": 6,
+    "out_channels": 3,
+    "hidden_channels": 32,
+    "n_blocks": 2,
+    "kernel_size": 3
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 400,
+    "loss": {
+      "name": "smooth_sps_and_nll",
+      "sigma_global": 0.0563870259,
+      "tau": 0.005,
+      "lambda_sps": 2.0,
+      "beta_floor": 0.05
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 1.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 20
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "persist_first_frames": 4,
+    "calibrated_uncertainty": {
+      "gamma": 1.0,
+      "beta_floor": 0.05,
+      "sigma_global": 0.0563870259
+    },
+    "controls": {
+      "point_predictions": "frozen from E027 champion model",
+      "persist_first_frames": 4
+    },
+    "gates": {
+      "sps_minimum": 45.0,
+      "coverage_minimum": 0.75,
+      "rel_l2_minimum": 94.70,
+      "mvpe_minimum": 95.40,
+      "tke_minimum": 72.30
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "experiment": "E003",
+  "seed": 20260815,
+  "hypothesis": "A CNO initialized from the released simulation-only checkpoint and fine-tuned only on E002 training real fields will beat persistence on all four quality subscores: relative L2, TKE, MVPE, and SPS.",
+  "comparator": "E002 persistence",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "per-channel Gaussian statistics over every training-window element",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": "normalized MSE over u, v, and zero-pressure channels",
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "split": "unchanged E002 validation",
+    "evaluations_during_training": 0,
+    "final_evaluations": 1,
+    "batch_size": 4,
+    "uncertainty": "official default interval"
+  },
+  "external_code_audit": {
+    "repository": "https://github.com/AI4Science-WestlakeU/RealPDEBench",
+    "commit": "62f4c80ab17f78933d046f2b038531dbc6a478a0",
+    "use": "Audited CNO/Adam/cosine/normalized-MSE semantics; upstream code is not copied into the submission."
+  },
+  "preflight": {
+    "reason_for_final_budget": "A 10-update RTX 5050 smoke at batch size 4 took 37.24 seconds and peaked at 5,015,075,328 allocated bytes. The initially proposed 1,200 updates would exceed the pre-registered 40-minute cap, so the final budget was reduced before any validation evaluation.",
+    "validation_examined": false
+  }
+}

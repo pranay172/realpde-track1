@@ -1,0 +1,68 @@
+{
+  "experiment": "E040",
+  "seed": 20260815,
+  "hypothesis": "Extend the scale-balanced Fold A backbone from 3000 to 6000 fixed updates, restarting from sim initialization and stretching the cosine schedule. Confirm whether optimization budget still improves the point predictor without new architecture.",
+  "comparator": "E034 raw and persist-first-4 on the same Fold A",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "unchanged E003/E005 per-channel Gaussian statistics over every training-window element",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "weight_decay": 0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0,
+    "batch_size": 4,
+    "num_updates": 6000,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 520
+  },
+  "evaluation": {
+    "arrays": "artifacts/e002_validation/arrays",
+    "windows": 357,
+    "persist_first_frames": 4,
+    "interval": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "reference_predictions": "artifacts/e034_long_backbone/predictions.npy",
+    "minimum_deltas": {
+      "rel_l2_score": 0.1,
+      "mvpe_score": 0,
+      "tke_score": -0.1,
+      "sps_score": 0.3
+    },
+    "slice_max_regression": {
+      "rel_l2_score": 0.25,
+      "tke_score": 1,
+      "mvpe_score": 0.25
+    }
+  },
+  "selection_pressure_note": "A reused Fold A ablation, not independent confirmation. Require matched-budget Fold B confirmation before packaging if accepted.",
+  "controls": "E034 controls; only 3000->6000 updates plus matched cosine T_max and wall-time allowance."
+}

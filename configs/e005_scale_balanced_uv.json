@@ -1,0 +1,76 @@
+{
+  "experiment": "E005",
+  "seed": 20260815,
+  "hypothesis": "Replacing E003's global normalized three-channel MSE with per-window physical relative squared error over only scored u/v will recover at least 3 Rel-L2 points and 5 TKE points at Re 3750 while preserving the other held-out Reynolds groups, and will beat persistence overall on Rel-L2 and TKE.",
+  "comparator": "E003, with E002 persistence as the overall acceptance anchor",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "unchanged E003 per-channel Gaussian statistics over every training-window element",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "split": "unchanged E002 validation",
+    "evaluations_during_training": 0,
+    "final_evaluations": 1,
+    "batch_size": 4,
+    "uncertainty": "official default interval",
+    "success_criteria": {
+      "re_3750_min_score_gain_vs_e003": {
+        "rel_l2_score": 3.0,
+        "tke_score": 5.0
+      },
+      "other_re_max_score_regression_vs_e003": {
+        "rel_l2_score": 0.75,
+        "tke_score": 1.5,
+        "mvpe_score": 0.75
+      },
+      "overall_must_exceed_persistence": [
+        "rel_l2_score",
+        "tke_score"
+      ],
+      "overall_mvpe_max_regression_vs_e003": 0.25,
+      "sps": "reported but excluded from the loss-ablation gate because uncertainty is unchanged"
+    }
+  },
+  "controls_held_equal_to_e003": [
+    "released simulation-only CNO initialization",
+    "64 E002 training trajectories and bad-file exclusion",
+    "train-only Gaussian input/target statistics",
+    "window membership and stride",
+    "model architecture",
+    "seed, shuffle order, batch size, and update count",
+    "optimizer, learning rate, scheduler, precision, and no gradient clipping",
+    "single fixed-final E002 evaluation"
+  ],
+  "selection_pressure_note": "E004 exposed E002 results by Reynolds group; success thresholds are fixed here before E005 training or validation inference. Later gains require robustness confirmation on a separately pre-registered fold."
+}

@@ -1,0 +1,63 @@
+{
+  "experiment": "E025",
+  "seed": 20260815,
+  "hypothesis": "Averaging the Fold B E020 h16 adapter, a Fold B E022-style heteroskedastic field head, and a Fold B h32 AdamW adapter on frozen E010 CNO will beat E020 persist-first-4 on Fold B Rel-L2 and MVPE with at most 1.0 TKE regression.",
+  "comparator": "E020 persist-first-4 on Fold B: Rel-L2 94.54248360638022, TKE 72.65038391468373, MVPE 95.20303662680355, calibrated SPS 37.20160182146751",
+  "split_config": "configs/e009_secondary_fold.json",
+  "members": [
+    {
+      "name": "e020_h16",
+      "checkpoint": "artifacts/e020_secondary_fold_residual/final.pth",
+      "already_trained": true
+    },
+    {
+      "name": "heteroskedastic_h32",
+      "checkpoint": "artifacts/e025_fold_b_heteroskedastic/final.pth",
+      "config": "configs/e025_fold_b_heteroskedastic.json"
+    },
+    {
+      "name": "adapter3_h32_adamw",
+      "checkpoint": "artifacts/e025_fold_b_adapter3/final.pth",
+      "config": "configs/e025_fold_b_adapter3.json"
+    }
+  ],
+  "backbone": "artifacts/e010_secondary_fold/final.pth",
+  "arrays": "artifacts/e010_secondary_fold/arrays",
+  "normalizer": "artifacts/e020_secondary_fold_residual/normalizer.json",
+  "persist_first_frames": 4,
+  "interval": {
+    "alpha": 0.025,
+    "beta": 0.15,
+    "sigma_global": 0.0563870259,
+    "note": "Frozen E006 interval. Ensemble variance and E022 log-variance are not used for SPS."
+  },
+  "e020_persist_first_4": {
+    "rel_l2_score": 94.54248360638022,
+    "tke_score": 72.65038391468373,
+    "mvpe_score": 95.20303662680355,
+    "calibrated_sps_score": 37.20160182146751,
+    "by_nominal_re": {
+      "6300": {
+        "rel_l2_score": 94.24426680045806,
+        "tke_score": 74.9039302604589,
+        "mvpe_score": 94.33209387236789
+      }
+    }
+  },
+  "success_criteria": {
+    "persist_first_4_must_beat_e020": ["rel_l2_score", "mvpe_score"],
+    "persist_first_4_tke_max_regression_vs_e020": 1.0,
+    "re_6300_persist_first_4_max_regression_vs_e020": {
+      "rel_l2_score": 1.0,
+      "tke_score": 2.0,
+      "mvpe_score": 1.0
+    },
+    "sps": "reported on the frozen E006 interval; excluded from the ensemble gate"
+  },
+  "promotion": "evidence only; do not package or submit from Fold B",
+  "limitations": [
+    "Do not score Fold A E019/E022/E023 checkpoints on Fold B.",
+    "SPS uses frozen E006 bounds, not learned uncertainty.",
+    "A pass validates the ensemble recipe, not an E024 resubmission by itself."
+  ]
+}

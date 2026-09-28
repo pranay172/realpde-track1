@@ -1,0 +1,65 @@
+{
+  "experiment": "E007",
+  "hypothesis": "The frozen E006 candidate can be packaged as a compliant, deterministic, offline Track 1 submission with calibrated bounds and complete within the five-minute evaluator limit.",
+  "candidate": {
+    "wrapper": "submission/e007/submission.py",
+    "checkpoint": "artifacts/e005_scale_balanced_uv/final.pth",
+    "checkpoint_sha256": "389f42f3509526b232b3064e168fd652c5668183f8739218cc8dc998d1c5edba",
+    "model_type": "cno",
+    "point_batch_size": 4,
+    "normalizer": "artifacts/e005_scale_balanced_uv/normalizer.json",
+    "uncertainty": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259,
+      "pressure_bounds": "exactly zero"
+    }
+  },
+  "package": {
+    "archive": "artifacts/e007_submission/e006_candidate.zip",
+    "required_root_entries": [
+      "submission.py",
+      "model.pth",
+      "load_baseline.py",
+      "rpde_baselines",
+      "_vendor"
+    ],
+    "maximum_extracted_bytes": 256000000,
+    "forbid_python_cache_files": true
+  },
+  "acceptance": {
+    "official_image": "pytorch/pytorch:2.2.2-cuda12.1-cudnn8-runtime",
+    "official_image_digest": "sha256:923f687790bec78081c357e71dcd5dcef80b0cc00f6c34484902a5e83362c854",
+    "network": "none",
+    "container_filesystem": "read-only except /tmp and result mount",
+    "public_contract_windows": {
+      "source": "example_data/3750_0.h5",
+      "starts": [0, 40],
+      "purpose": "contract testing only; not model selection evidence"
+    },
+    "required_output_keys": ["lower", "prediction", "upper"],
+    "require_float32_finite_exact_shape": true,
+    "require_lower_le_prediction_le_upper": true,
+    "require_zero_pressure_for_all_outputs": true,
+    "require_same_process_exact_repeat": true,
+    "require_fresh_process_exact_repeat": true,
+    "batch_invariance_rtol": 1e-6,
+    "batch_invariance_atol": 1e-7,
+    "maximum_whole_process_seconds": 300,
+    "local_gpu_whole_run_proxy": {
+      "samples": 357,
+      "construction": "cycle the two public contract windows; no additional field data",
+      "maximum_seconds_including_warmup_and_model_load": 300,
+      "interpretation": "supplementary RTX 5050/Torch 2.7.1 evidence for the A800/Torch 2.2.2 limit"
+    },
+    "require_official_scorer_with_custom_bounds": true
+  },
+  "controls": [
+    "No E002 validation target or prediction is read by E007.",
+    "The E005 checkpoint and E006 interval parameters are frozen.",
+    "The archive is built from tracked wrapper/kit sources plus the hash-locked ignored checkpoint.",
+    "The official container is run without network, capabilities, or a writable root filesystem.",
+    "A local RTX 5050 GPU smoke is supplementary; official-image acceptance is the decisive compatibility gate."
+  ],
+  "decision_rule": "Promote the candidate only if every package, output-contract, determinism, batch-invariance, bounds, scorer, image, and five-minute check passes."
+}

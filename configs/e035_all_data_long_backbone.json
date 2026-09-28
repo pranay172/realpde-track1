@@ -1,0 +1,62 @@
+{
+  "experiment": "E035",
+  "seed": 20260815,
+  "hypothesis": "Training the E034-accepted long-budget recipe (identical controls, only num_updates 600 -> 3000) on all 81 usable public real trajectories will produce the strongest available frozen backbone for adapter retraining and packaging. There is no leakage-safe local holdout for this checkpoint (it trains on every public real trajectory), so acceptance is by training integrity, evaluator-compatible loading, and its role as the E036 adapter substrate rather than by a holdout quality gate.",
+  "comparator": "E011 all-public 600-update backbone (the current all-data packaging substrate used by E021/E029/E033 members); no clean local holdout comparison is possible or claimed",
+  "split_config": "configs/e011_full_public_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "unchanged per-channel Gaussian statistics over every training-window element, computed from all-public training windows only",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 3000,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 260
+  },
+  "evaluation": {
+    "split": "no local holdout: this checkpoint sees every usable public real trajectory; public-example windows remain contract tests only",
+    "evaluations_during_training": 0,
+    "final_evaluations": 0,
+    "success_criteria": {
+      "training_completes_with_frozen_controls": true,
+      "torch_2_2_2_cpu_strict_load_and_finite_forward": true,
+      "fold_a_e034_evidence_stands_in_for_recipe_quality": "E034 accepted with all preregistered gates passed on Fold A; Fold B replicate was consciously skipped this cycle (user decision 2026-08-22) in favor of faster leaderboard feedback"
+    }
+  },
+  "controls_held_equal_to_e034": [
+    "released simulation-only CNO initialization",
+    "train-only Gaussian input/target statistics",
+    "window membership rule and stride (applied to the full-public file list)",
+    "model architecture",
+    "seed, shuffle order, batch size",
+    "optimizer, learning rate, scheduler family, precision, and no gradient clipping",
+    "fixed-final checkpoint selection"
+  ],
+  "single_change_vs_e034": "training file membership: 64 Fold A files -> 81 all-public files (configs/e011_full_public_split.json); num_updates unchanged at 3000",
+  "next_step_if_accepted": "Register E036: retrain the champion tri-loss adapter members (rollout curriculum, physics FiLM, wavelet-TKE) frozen on this backbone following the E033 pattern, package with persist-first-4 and dynamic wake-masked bounds, and run the 15-gate container verification before any Codabench upload."
+}

@@ -1,0 +1,110 @@
+{
+  "experiment": "E011",
+  "seed": 20260815,
+  "hypothesis": "Training the frozen E005 recipe on all 81 usable public real trajectories and packaging it with the frozen E008 interval (0.025, 0.15) and singleton micro-batch wrapper will pass every E008-style local submission gate.",
+  "comparator": "E008 package/contract/runtime gates; no leakage-safe public holdout remains for quality comparison",
+  "split_config": "configs/e011_full_public_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "train-only Gaussian statistics over all 81 usable public real trajectories",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "candidate": {
+    "wrapper": "submission/e011/submission.py",
+    "checkpoint": "artifacts/e011_full_public/final.pth",
+    "model_type": "cno",
+    "point_batch_size": 1,
+    "normalizer": "artifacts/e011_full_public/normalizer.json",
+    "uncertainty": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259,
+      "pressure_bounds": "exactly zero"
+    }
+  },
+  "package": {
+    "archive": "artifacts/e011_submission/e011_candidate.zip",
+    "required_root_entries": [
+      "submission.py",
+      "model.pth",
+      "load_baseline.py",
+      "rpde_baselines",
+      "_vendor"
+    ],
+    "maximum_extracted_bytes": 256000000,
+    "forbid_python_cache_files": true
+  },
+  "acceptance": {
+    "official_image": "pytorch/pytorch:2.2.2-cuda12.1-cudnn8-runtime",
+    "official_image_digest": "sha256:923f687790bec78081c357e71dcd5dcef80b0cc00f6c34484902a5e83362c854",
+    "network": "none",
+    "container_filesystem": "read-only except /tmp and result mount",
+    "public_contract_windows": {
+      "source": "example_data/3750_0.h5",
+      "starts": [0, 40],
+      "purpose": "contract testing only; not model selection evidence"
+    },
+    "required_output_keys": ["lower", "prediction", "upper"],
+    "require_float32_finite_exact_shape": true,
+    "require_lower_le_prediction_le_upper": true,
+    "require_zero_pressure_for_all_outputs": true,
+    "require_same_process_exact_repeat": true,
+    "require_fresh_process_exact_repeat": true,
+    "batch_invariance_rtol": 1e-6,
+    "batch_invariance_atol": 1e-7,
+    "maximum_whole_process_seconds": 300,
+    "local_gpu_whole_run_proxy": {
+      "samples": 357,
+      "construction": "cycle the two public contract windows; no additional field data",
+      "maximum_seconds_including_warmup_and_model_load": 300,
+      "e007_proxy_predict_seconds": 24.84252682099941,
+      "interpretation": "supplementary RTX 5050/Torch 2.7.1 evidence for the A800/Torch 2.2.2 limit"
+    },
+    "require_official_scorer_with_custom_bounds": true
+  },
+  "controls": [
+    "Training recipe is unchanged from E005 except the file set is all 81 usable public real trajectories",
+    "7575_0.h5 remains excluded",
+    "Interval remains the frozen E006/E008/E009 values; it is not re-selected",
+    "Wrapper batch size remains 1",
+    "E002 and complementary-fold scores are not computed or used for selection",
+    "Public-example window scores are contract-only",
+    "Codabench scores are not used for parameter selection"
+  ],
+  "decision_rule": "Promote and retain the archive only if every E008-style package, official-container, bounds, determinism, scorer, and runtime gate passes. Do not treat public-example scores as quality evidence.",
+  "promotion": "submission candidate only if the local gate passes; E008 remains the frozen leaderboard baseline until a new Codabench result is recorded",
+  "limitations": [
+    "There is no leakage-safe local holdout after training on all public real files.",
+    "Fewer effective epochs than E005 at the same 600-update budget because the window count is larger.",
+    "Local RTX 5050/Torch 2.7.1 timing is not the official A800/Torch 2.2.2 measurement."
+  ]
+}

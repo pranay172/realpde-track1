@@ -1,0 +1,89 @@
+{
+  "experiment": "E039A",
+  "seed": 20260815,
+  "hypothesis": "Clean 600-update rollout adapter on the long-budget backbone; compare raw and persist-first-4 against the same backbone on the same holdout. No calibration fitted on validation.",
+  "comparator": "E034",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "artifacts/e034_long_backbone/final.pth",
+  "model": {
+    "wrapper": "residual_cno",
+    "base_model_type": "cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "last_block_unfreeze": false,
+    "adapter": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 30,
+    "spatial_stride": 2,
+    "normalization": "inherited unchanged from clean backbone checkpoint",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "curriculum": {
+      "teacher_forcing_updates": 300,
+      "rollout_probability": 0.5,
+      "rollout_step_frames": 10,
+      "step2_weight": 0.5
+    },
+    "loss": {
+      "name": "scale_balanced_uv_with_mean_regularizer",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "lambda_mean": 0.1
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "arrays": "artifacts/e002_validation/arrays",
+    "windows": 357,
+    "persist_first_frames": 4,
+    "interval": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "reference_predictions": "artifacts/e034_long_backbone/predictions.npy",
+    "minimum_deltas": {
+      "rel_l2_score": 0,
+      "mvpe_score": 0,
+      "tke_score": -0.1,
+      "sps_score": 0
+    },
+    "slice_max_regression": {
+      "rel_l2_score": 0.25,
+      "tke_score": 1,
+      "mvpe_score": 0.25
+    }
+  },
+  "require_clean_backbone_provenance": true
+}

@@ -1,0 +1,83 @@
+{
+  "experiment": "E028",
+  "seed": 20260815,
+  "hypothesis": "Training the 2-stage residual rollout curriculum (300 teacher-forced updates + 300 2-step rollout updates, p=0.5) on the frozen real E010 CNO over Fold B trajectories will beat E020 on Fold B Rel-L2 (>=94.55) and MVPE (>=95.21), maintain TKE >= 72.60, improve SPS (>=37.30), and confirm that the rollout curriculum recipe is split-robust across multiple independent folds.",
+  "comparator": "E020 persist-first-4 on Fold B: Rel-L2 94.542, TKE 72.650, MVPE 95.203, calibrated SPS 37.202",
+  "split_config": "configs/e009_secondary_fold.json",
+  "initial_checkpoint": "artifacts/e010_secondary_fold/final.pth",
+  "model": {
+    "wrapper": "residual_cno",
+    "base_model_type": "cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "last_block_unfreeze": false,
+    "adapter": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 30,
+    "spatial_stride": 2,
+    "normalization": "artifacts/e010_secondary_fold/normalizer.json",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "curriculum": {
+      "teacher_forcing_updates": 300,
+      "rollout_probability": 0.5,
+      "rollout_step_frames": 10,
+      "step2_weight": 0.5
+    },
+    "loss": {
+      "name": "scale_balanced_uv_with_mean_regularizer",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "lambda_mean": 0.1
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "fold": "B",
+    "arrays": "artifacts/e010_secondary_fold/arrays",
+    "windows": 376,
+    "persist_first_frames": 4,
+    "uncertainty": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "acceptance_gates": {
+      "rel_l2_score_min": 94.55,
+      "mvpe_score_min": 95.21,
+      "tke_score_min": 72.60,
+      "sps_score_min": 37.30,
+      "re_6300_rel_l2_min": 94.20,
+      "re_6300_tke_min": 74.00,
+      "re_6300_mvpe_min": 94.20
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "experiment": "E033",
+  "seed": 20260815,
+  "hypothesis": "Training the Tri-Loss Pareto Diversity Ensemble (Member 1: Rollout Curriculum, Member 2: Physics-Conditioned Invariant FiLM Adapter, Member 3: Multi-Scale Wavelet-TKE Adapter) on all 81 usable public training trajectories with frozen all-data CNO backbone and packaging with singleton micro-batching, persist-first-4, and Dynamic Wake-Masked Conformal Bounds will pass all 15 local submission gates, maintain exact batch invariance (0.0 diff), execute within 5 minutes on CPU, and provide a major leaderboard breakthrough targeting 81+ final score.",
+  "split_config": "configs/e011_full_public_split.json",
+  "initial_checkpoint": "artifacts/e011_full_public/final.pth",
+  "models": {
+    "base_model_type": "cno",
+    "member1_rollout": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    },
+    "member2_film": {
+      "name": "film_residual_conv3d",
+      "in_channels": 6,
+      "out_channels": 3,
+      "flow_dim": 4,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    },
+    "member3_wavelet": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 30,
+    "spatial_stride": 2,
+    "normalization": "artifacts/e011_full_public/normalizer.json",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates_per_member": 600,
+    "precision": "float32",
+    "gradient_clip_norm": 1.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 30
+  },
+  "uncertainty": {
+    "gamma_ens": 1.0,
+    "h_laminar": 0.006,
+    "h_wake": 0.015,
+    "sigma_global": 0.0563870259
+  },
+  "container_acceptance_gates": {
+    "required_package_files": ["submission.py", "metadata", "ensemble_payload.pth"],
+    "max_archive_bytes": 104857600,
+    "max_extracted_bytes": 314572800,
+    "max_runtime_seconds": 300.0,
+    "max_cpu_memory_bytes": 4294967296,
+    "pressure_channel_must_be_zero": true,
+    "must_satisfy_lower_upper_ordering": true,
+    "exact_batch_invariance_required": true,
+    "fresh_process_determinism_required": true
+  }
+}

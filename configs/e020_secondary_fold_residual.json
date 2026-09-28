@@ -1,0 +1,114 @@
+{
+  "experiment": "E020",
+  "seed": 20260815,
+  "hypothesis": "Attaching a zero-init residual Conv3d adapter to the frozen real-adapted E010 CNO and training for 600 updates on Fold B training trajectories with the scale-balanced relative u/v loss will beat E010 persist-first-4 on Fold B Rel-L2 and MVPE, maintain TKE within 1.0 point, and confirm that the I014 residual adapter improvement is split-robust.",
+  "comparator": "E010 persist-first-4 on Fold B: Rel-L2 94.39130614208199, TKE 72.36620511968458, MVPE 95.04606724766842, calibrated SPS 36.101204625207316",
+  "split_config": "configs/e009_secondary_fold.json",
+  "initial_checkpoint": "artifacts/e010_secondary_fold/final.pth",
+  "model": {
+    "wrapper": "residual_cno",
+    "base_model_type": "cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "last_block_unfreeze": false,
+    "adapter": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 16,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "train-only Gaussian statistics over the 62 reserved Fold B training files",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "fold": "B",
+    "arrays": "artifacts/e010_secondary_fold/arrays",
+    "evaluations_during_training": 0,
+    "final_evaluations": 1,
+    "batch_size": 4,
+    "persist_first_frames": 4,
+    "interval": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "e010_persist_first_4": {
+      "rel_l2_score": 94.39130614208199,
+      "tke_score": 72.36620511968458,
+      "mvpe_score": 95.04606724766842,
+      "calibrated_sps_score": 36.101204625207316,
+      "by_nominal_re": {
+        "6300": {
+          "rel_l2_score": 94.17446687154275,
+          "tke_score": 74.20779214690238,
+          "mvpe_score": 94.25778318535933
+        }
+      }
+    },
+    "success_criteria": {
+      "persist_first_4_must_beat_e010": ["rel_l2_score", "mvpe_score"],
+      "persist_first_4_tke_max_regression_vs_e010": 1.0,
+      "re_6300_persist_first_4_max_regression_vs_e010": {
+        "rel_l2_score": 1.0,
+        "tke_score": 2.0,
+        "mvpe_score": 1.0
+      },
+      "sps": "reported on the frozen E006 interval; excluded from the adapter-ablation gate"
+    }
+  },
+  "controls_held_equal_to_e010": [
+    "62 Fold B training trajectories and bad-file exclusion",
+    "train-only Gaussian input/target statistics over Fold B training set",
+    "window membership and stride",
+    "per-window physical relative squared u/v loss",
+    "seed, shuffle order, batch size, and update count",
+    "optimizer, learning rate, scheduler, precision, and no gradient clipping",
+    "single fixed-final Fold B evaluation"
+  ],
+  "controls_changed_from_e010": [
+    "E010 CNO backbone is frozen in eval mode; only the residual adapter is trained",
+    "last CNO blocks stay frozen",
+    "evaluation scores raw residual-CNO and persist-first-4 with the frozen interval"
+  ],
+  "promotion": "evidence only; do not package or submit from Fold B",
+  "limitations": [
+    "Fold B holdouts are complementary-pool trajectories, not global dataset edges.",
+    "Fold A and Fold C are not loaded. E020 may be ranked only on Fold B.",
+    "Codabench scores are not used. Persist-first k and the interval stay frozen."
+  ]
+}

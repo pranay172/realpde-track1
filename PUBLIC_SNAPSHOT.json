@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "track": 1,
+  "created": "2026-09-28",
+  "source_commit": "287b5f7612b02273c3b58069743cfa0d38580a7e",
+  "source_history_included": false,
+  "public_author": {
+    "name": "Pranay Vandanapu",
+    "email": "pranayvandanapu2001@gmail.com",
+    "personal_email_publication_approved": true
+  },
+  "kit_directory": "realpde_t1_starting_kit_v9",
+  "excluded": [
+    "realpde_t1_starting_kit_v9/",
+    "competition_docs/",
+    "ENVIRONMENT_SETUP_ARCHIVE.md",
+    ".git/",
+    "datasets, model artifacts, environments, caches and untracked files"
+  ],
+  "changes": [
+    "Public-facing documentation and dependency acquisition instructions",
+    "Public snapshot checks and data-free CI",
+    "Preserved original environment pins and scientific result records",
+    "Cleaned historical whitespace; model/experiment Python ASTs unchanged"
+  ],
+  "reproduction_status": "Partial; E037 checkpoint assembly is not automated, artifacts absent; E043 evaluation failed"
+}

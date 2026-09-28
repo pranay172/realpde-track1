@@ -1,0 +1,50 @@
+{
+  "experiment": "E006",
+  "seed": 20260815,
+  "hypothesis": "A global symmetric interval with a training-calibrated additive floor can raise E005 SPS above persistence while leaving point predictions and deterministic quality unchanged.",
+  "point_model": "artifacts/e005_scale_balanced_uv/final.pth",
+  "split_config": "configs/e002_split.json",
+  "interval": {
+    "formula": "half_width = alpha * abs(point_prediction) + beta * sigma_global",
+    "sigma_global": 0.0563870259,
+    "alpha_grid": [0.0, 0.025, 0.05, 0.075, 0.1],
+    "beta_grid": [0.0, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.25, 0.3],
+    "default_alpha": 0.05,
+    "default_beta": 0.0,
+    "selection": "maximum calibration SPS; deterministic candidate-list order breaks exact ties",
+    "pressure_bounds": "exactly zero"
+  },
+  "training_side_calibration": {
+    "calibration_nominal_re": [5025, 12675, 19050, 25425],
+    "audit_nominal_re": "all other E002-training Reynolds groups",
+    "window_stride": 20,
+    "batch_size": 4,
+    "preload_trajectories": true,
+    "num_workers": 0,
+    "minimum_calibration_sps_gain_vs_default": 2.0,
+    "minimum_audit_sps_gain_vs_default": 1.0
+  },
+  "final_evaluation": {
+    "source": "saved E005 E002-validation point predictions; no new model inference",
+    "evaluations": 1,
+    "minimum_sps_score": 16.988743082965712,
+    "maximum_local_time_score_regression": 0.25,
+    "point_prediction_must_be_bitwise_unchanged": true
+  },
+  "controls": [
+    "E005 checkpoint and point-prediction implementation are frozen",
+    "candidate grid and selection rule are fixed before training residual inference",
+    "calibration uses only the explicit 64 E002-training trajectories",
+    "the selected candidate is audited without using audit results for selection",
+    "E002 validation targets are used once after interval selection"
+  ],
+  "preflight": {
+    "validation_examined": false,
+    "reason_for_grid_expansion": "A two-trajectory training-side smoke selected the original beta=0.15 upper boundary. The beta grid was expanded through 0.30 before the full calibration run or any E002-validation bound evaluation."
+  },
+  "limitations": [
+    "The E005 model was trained on both calibration and audit trajectories, so their residuals can be optimistic even though interval selection is separated.",
+    "The single E002 split has already accumulated substantial model-selection pressure.",
+    "Local RTX 5050 timing is not directly comparable with Codabench A800 timing."
+  ]
+}

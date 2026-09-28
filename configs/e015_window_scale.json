@@ -1,0 +1,45 @@
+{
+  "experiment": "E015",
+  "seed": 20260815,
+  "hypothesis": "Scaling each Fold A window so its scored u/v std matches the frozen E005 training std, running the E005 CNO, unscaling the output, then applying persist-first-4 will beat E013 on Rel-L2 and MVPE with at most 1.0 TKE regression.",
+  "comparator": "E013 persist-first-4 on Fold A: Rel-L2 94.541, TKE 72.254, MVPE 95.205, calibrated SPS 38.086",
+  "split_config": "configs/e002_split.json",
+  "point_model": "artifacts/e005_scale_balanced_uv/final.pth",
+  "normalizer": "artifacts/e005_scale_balanced_uv/normalizer.json",
+  "saved_e005_predictions": "artifacts/e005_scale_balanced_uv/predictions.npy",
+  "persist_first_frames": 4,
+  "interval": {
+    "alpha": 0.025,
+    "beta": 0.15,
+    "sigma_global": 0.0563870259
+  },
+  "scaling": {
+    "name": "per_window_per_channel_std_match",
+    "measured_channels": 2,
+    "min_std": 1e-6,
+    "reference": "E005 training-window input std_input[u,v]",
+    "pressure": "exactly zero"
+  },
+  "evaluation": {
+    "fold": "A",
+    "arrays": "artifacts/e002_validation/arrays",
+    "batch_size": 4,
+    "device": "cuda"
+  },
+  "success_criteria": {
+    "must_beat_e013_persist_first_4": ["rel_l2_score", "mvpe_score"],
+    "tke_max_regression_vs_e013": 1.0
+  },
+  "controls": [
+    "E005 checkpoint, global Gaussian normalizer, persist-first k=4, and E006 interval stay frozen",
+    "Fold C is not loaded",
+    "No training",
+    "Codabench scores are not used"
+  ],
+  "promotion": "evidence only; package only if the Fold A gates pass",
+  "limitations": [
+    "This is an inference overlay on a model trained with global statistics, so it can mismatch internal BatchNorm scale.",
+    "A failed overlay does not rule out training-time instance normalization.",
+    "E005/E013 may be ranked only on Fold A."
+  ]
+}

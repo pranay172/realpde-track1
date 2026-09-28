@@ -1,0 +1,91 @@
+{
+  "experiment": "E034",
+  "seed": 20260815,
+  "hypothesis": "Holding every E005 control fixed except the update budget (600 -> 3000, cosine stretched to match) will produce a materially better Fold A backbone: persist-first-4 calibrated Rel-L2/MVPE will beat the E005 row outright, stay within 0.25 of the E027 champion row, and the Re 26700 holdout slice will beat the E027 slice, because all current champions sit on backbones stopped at under one epoch and the hidden-set SPS/MVPE gap matches our worst held-out regime rather than any bound-scheme deficiency.",
+  "comparator": "E005 persist-first-4 calibrated Fold A row (acceptance anchor) and E027 persist-first-4 calibrated Fold A row (champion non-regression)",
+  "split_config": "configs/e002_split.json",
+  "initial_checkpoint": "../RealPDE-Competition-Data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "unchanged E003/E005 per-channel Gaussian statistics over every training-window element",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 3000,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "formula": "mean_batch(sum_t,h,w,c<2((prediction_physical-target_physical)^2) / max(sum_t,h,w,c<2(target_physical^2), epsilon))",
+      "pressure_contribution": 0.0
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 260
+  },
+  "evaluation": {
+    "split": "unchanged frozen E002 validation (Fold A), single fixed-final evaluation",
+    "evaluations_during_training": 0,
+    "final_evaluations": 1,
+    "persist_first_frames": 4,
+    "interval": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "success_criteria": {
+      "persist_first_4_calibrated_must_beat_e005": {
+        "rel_l2_score": 94.541,
+        "tke_score": 72.254,
+        "mvpe_score": 95.205
+      },
+      "persist_first_4_calibrated_max_regression_vs_e027": {
+        "rel_l2_score": 0.25,
+        "mvpe_score": 0.25,
+        "tke_score": 1.0
+      },
+      "re_26700_persist_first_4_calibrated_must_beat_e027_slice": {
+        "rel_l2_score": 93.68,
+        "mvpe_score": 94.814
+      },
+      "re_26700_tke_max_regression_vs_e027_slice": 0.5,
+      "sps": "reported with both default and frozen (0.025, 0.15) bounds but excluded from gates; bound scheme is not this experiment's variable"
+    },
+    "reference_rows_persist_first_4_calibrated": {
+      "e005_overall": {"rel_l2_score": 94.541, "tke_score": 72.254, "mvpe_score": 95.205, "sps_score": 38.086},
+      "e027_overall": {"rel_l2_score": 94.751, "tke_score": 72.388, "mvpe_score": 95.438, "sps_score": 39.257},
+      "e027_re_3750": {"rel_l2_score": 93.892, "tke_score": 70.685, "mvpe_score": 94.314, "sps_score": 45.842},
+      "e027_re_11400": {"rel_l2_score": 95.537, "tke_score": 74.376, "mvpe_score": 96.109, "sps_score": 42.309},
+      "e027_re_20325": {"rel_l2_score": 95.32, "tke_score": 72.13, "mvpe_score": 96.062, "sps_score": 36.278},
+      "e027_re_26700": {"rel_l2_score": 93.68, "tke_score": 71.924, "mvpe_score": 94.814, "sps_score": 30.313}
+    }
+  },
+  "controls_held_equal_to_e005": [
+    "released simulation-only CNO initialization",
+    "64 E002 training trajectories and bad-file exclusion",
+    "train-only Gaussian input/target statistics",
+    "window membership and stride",
+    "model architecture",
+    "seed, shuffle order, batch size",
+    "optimizer, learning rate, scheduler family, precision, and no gradient clipping",
+    "single fixed-final Fold A evaluation"
+  ],
+  "single_change_vs_e005": "training.num_updates 600 -> 3000 (cosine T_max stretched identically); no other field differs",
+  "selection_pressure_note": "E002/Fold A has been inspected at many levels since E002; acceptance requires the pre-registered gates above plus a separately registered Fold B replicate before any packaging decision.",
+  "next_step_if_accepted": "Register and run the Fold B replicate of the identical recipe (62 complementary-fold files, one evaluation). If Fold B confirms, retrain the champion tri-loss adapter members on the long backbone and only then consider an all-data long-budget backbone for packaging."
+}

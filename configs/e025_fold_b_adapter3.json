@@ -1,0 +1,66 @@
+{
+  "experiment": "E025_adapter3",
+  "seed": 20260816,
+  "hypothesis": "A Fold B h=32 residual adapter trained with AdamW on frozen E010 CNO is a valid third ensemble member. Quality is judged only after the three-member Fold B ensemble is scored.",
+  "comparator": "E020 persist-first-4 on Fold B: Rel-L2 94.54248360638022, TKE 72.65038391468373, MVPE 95.20303662680355, SPS 37.20160182146751",
+  "split_config": "configs/e009_secondary_fold.json",
+  "initial_checkpoint": "artifacts/e010_secondary_fold/final.pth",
+  "model": {
+    "wrapper": "residual_cno",
+    "base_model_type": "cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "last_block_unfreeze": false,
+    "adapter": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 20,
+    "spatial_stride": 2,
+    "normalization": "train-only Gaussian statistics over the 62 reserved Fold B training files",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "loss": {
+      "name": "per_window_physical_relative_mse",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 1.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "evaluation": {
+    "fold": "B",
+    "arrays": "artifacts/e010_secondary_fold/arrays",
+    "persist_first_frames": 4
+  },
+  "promotion": "member only; do not package from this checkpoint",
+  "limitations": [
+    "This is the Fold B analogue of E023 member 3, with AdamW actually used.",
+    "Fold A and Fold C are not loaded."
+  ]
+}

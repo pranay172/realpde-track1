@@ -1,0 +1,125 @@
+{
+  "experiment": "E029",
+  "seed": 20260815,
+  "hypothesis": "Training the 2-stage residual rollout curriculum (300 teacher forcing + 300 2-step rollout, p=0.5) on all 81 usable public training trajectories with frozen all-data CNO backbone and packaging with persist-first-4 and calibrated uncertainty bounds will pass all 15 local submission gates, maintain exact batch invariance, execute within 5 minutes, and provide a direct leaderboard quality upgrade over official baseline E021 (75.872730).",
+  "split_config": "configs/e011_full_public_split.json",
+  "initial_checkpoint": "artifacts/e011_full_public/final.pth",
+  "model": {
+    "wrapper": "residual_cno",
+    "base_model_type": "cno",
+    "trainable": "adapter_only",
+    "backbone_mode": "eval",
+    "last_block_unfreeze": false,
+    "adapter": {
+      "name": "residual_conv3d",
+      "input": "concat_input_and_backbone",
+      "in_channels": 6,
+      "out_channels": 3,
+      "hidden_channels": 32,
+      "n_blocks": 2,
+      "kernel_size": 3,
+      "zero_init_last": true
+    }
+  },
+  "data": {
+    "window_stride": 20,
+    "input_frames": 20,
+    "output_frames": 30,
+    "spatial_stride": 2,
+    "normalization": "artifacts/e011_full_public/normalizer.json",
+    "pressure": "exactly zero",
+    "shuffle": true,
+    "num_workers": 0,
+    "pin_memory": true,
+    "preload_trajectories": true
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "eta_min": 0.0,
+    "batch_size": 4,
+    "num_updates": 600,
+    "curriculum": {
+      "teacher_forcing_updates": 300,
+      "rollout_probability": 0.5,
+      "rollout_step_frames": 10,
+      "step2_weight": 0.5
+    },
+    "loss": {
+      "name": "scale_balanced_uv_with_mean_regularizer",
+      "measured_channels": 2,
+      "denominator_epsilon": 1e-12,
+      "lambda_mean": 0.1
+    },
+    "precision": "float32",
+    "gradient_clip_norm": 0.0,
+    "checkpoint_selection": "fixed final update; no validation-based early stopping",
+    "maximum_wall_minutes": 40
+  },
+  "candidate": {
+    "wrapper": "submission/e029/submission.py",
+    "checkpoint": "artifacts/e029_full_rollout/final.pth",
+    "checkpoint_sha256": "fc59848e8cc4d4d28458d6abbfb381b153cf964720c5e643d39862b19db492f8",
+    "normalizer": "artifacts/e029_full_rollout/normalizer.json",
+    "normalizer_sha256": "305a51f7e629d4f9de2b035cbe07c98d8a1ec198fbce858497db27c78064bbb7",
+    "model_kind": "residual_cno",
+    "point_batch_size": 1,
+    "persist_first_frames": 4,
+    "uncertainty": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259,
+      "pressure_bounds": "exactly zero"
+    }
+  },
+  "package": {
+    "archive": "artifacts/e029_submission/e029_candidate.zip",
+    "wrapper": "submission/e029/submission.py",
+    "point_batch_size": 1,
+    "persist_first_frames": 4,
+    "uncertainty": {
+      "alpha": 0.025,
+      "beta": 0.15,
+      "sigma_global": 0.0563870259
+    },
+    "required_root_entries": [
+      "submission.py",
+      "model.pth",
+      "load_baseline.py",
+      "rpde_baselines",
+      "_vendor"
+    ],
+    "maximum_extracted_bytes": 256000000,
+    "forbid_python_cache_files": true
+  },
+  "acceptance": {
+    "official_image": "pytorch/pytorch:2.2.2-cuda12.1-cudnn8-runtime",
+    "official_image_digest": "sha256:923f687790bec78081c357e71dcd5dcef80b0cc00f6c34484902a5e83362c854",
+    "network": "none",
+    "container_filesystem": "read-only except /tmp and result mount",
+    "public_contract_windows": {
+      "source": "example_data/3750_0.h5",
+      "starts": [0, 40],
+      "purpose": "contract testing only; not model selection evidence"
+    },
+    "required_output_keys": ["lower", "prediction", "upper"],
+    "require_float32_finite_exact_shape": true,
+    "require_lower_le_prediction_le_upper": true,
+    "require_zero_pressure_for_all_outputs": true,
+    "require_same_process_exact_repeat": true,
+    "require_fresh_process_exact_repeat": true,
+    "batch_invariance_rtol": 1e-6,
+    "batch_invariance_atol": 1e-7,
+    "maximum_whole_process_seconds": 300,
+    "local_gpu_whole_run_proxy": {
+      "samples": 357,
+      "construction": "cycle the two public contract windows; no additional field data",
+      "maximum_seconds_including_warmup_and_model_load": 300,
+      "interpretation": "supplementary RTX 5050/Torch 2.7.1 evidence for the A800/Torch 2.2.2 limit"
+    },
+    "require_official_scorer_with_custom_bounds": true
+  }
+}

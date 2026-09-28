@@ -1,0 +1,103 @@
+{
+  "experiment": "E012",
+  "seed": 20260815,
+  "hypothesis": "A contamination-aware three-fold harness with Fold C frozen at Re 5025/16500/22875/25425 will refuse to rank a method on a fold whose Reynolds groups appear in that method's training files, and persist-first-4 will beat its CNO base on Rel-L2, TKE, MVPE, and calibrated SPS on every clean fold.",
+  "comparator": "persistence on each fold; ranking uses only clean-fold deltas versus persistence and versus the method's own CNO base",
+  "folds": {
+    "A": {
+      "name": "e002",
+      "split_config": "configs/e002_split.json",
+      "arrays": "artifacts/e002_validation/arrays"
+    },
+    "B": {
+      "name": "complementary",
+      "split_config": "configs/e009_secondary_fold.json",
+      "arrays": "artifacts/e010_secondary_fold/arrays"
+    },
+    "C": {
+      "name": "fold_c",
+      "split_config": "configs/e012_fold_c.json",
+      "arrays": "artifacts/e012_multifold/fold_c/arrays"
+    }
+  },
+  "methods": {
+    "persistence": {
+      "kind": "non_learned",
+      "training_files_from": null,
+      "predictions": null
+    },
+    "e005_cno": {
+      "kind": "learned",
+      "training_files_from": "configs/e002_split.json",
+      "training_key": "training_files",
+      "predictions": {
+        "A": "artifacts/e005_scale_balanced_uv/predictions.npy"
+      },
+      "seconds_per_sample": {
+        "A": 0.06682714105883468
+      }
+    },
+    "e005_persist_first_4": {
+      "kind": "hybrid",
+      "base_method": "e005_cno",
+      "persist_first_frames": 4,
+      "training_files_from": "configs/e002_split.json",
+      "training_key": "training_files"
+    },
+    "e010_cno": {
+      "kind": "learned",
+      "training_files_from": "configs/e009_secondary_fold.json",
+      "training_key": "training_files",
+      "predictions": {
+        "B": "artifacts/e010_secondary_fold/predictions.npy"
+      },
+      "seconds_per_sample": {
+        "B": 0.06670674187773058
+      }
+    },
+    "e010_persist_first_4": {
+      "kind": "hybrid",
+      "base_method": "e010_cno",
+      "persist_first_frames": 4,
+      "training_files_from": "configs/e009_secondary_fold.json",
+      "training_key": "training_files"
+    }
+  },
+  "interval": {
+    "alpha": 0.025,
+    "beta": 0.15,
+    "sigma_global": 0.0563870259,
+    "note": "Frozen E006/E008/E009 interval; recomputed on hybrid predictions"
+  },
+  "ranking": {
+    "use_only_clean_folds": true,
+    "metrics": ["rel_l2_score", "tke_score", "mvpe_score", "calibrated_sps_score"],
+    "primary_reference": "persistence",
+    "do_not_invent_final_score": true
+  },
+  "success_criteria": {
+    "folds_are_pairwise_re_disjoint": true,
+    "fold_c_not_used_for_prior_selection": true,
+    "persist_first_4_beats_base_on_every_clean_fold": [
+      "rel_l2_score",
+      "tke_score",
+      "mvpe_score",
+      "calibrated_sps_score"
+    ],
+    "no_clean_learned_row_on_fold_c": true
+  },
+  "controls": [
+    "Fold C membership is frozen before Fold C field values are loaded",
+    "k=4 is frozen from the E011 review and is not retuned here",
+    "E005/E008 may be ranked only on Fold A",
+    "E010 may be ranked only on Fold B",
+    "Fold C learned scores are not computed in E012",
+    "Codabench scores are not used for selection"
+  ],
+  "promotion": "protocol only; do not package or submit from E012",
+  "limitations": [
+    "E005 and E010 are different checkpoints, so Fold A and Fold B clean rows are not the same model.",
+    "The unpublished official final_score is not reconstructed.",
+    "Local time scores remain RTX 5050 measurements and are not Codabench-comparable."
+  ]
+}
